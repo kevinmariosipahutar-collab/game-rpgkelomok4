@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROJEK KELOMPOK 4</title>
+<style>
+  :root{--ink:#14182b;--night:#1d2440;--parch:#e9dcc0;--gold:#d9a93c;--rune:#6fd3c4;--blood:#c8503f;--dim:#8a8fa8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--parch);font-family:Palatino,"Palatino Linotype",Georgia,serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px;gap:10px}
+  h1{font-size:1.4rem;color:var(--gold)}
+  .wrap{width:100%;max-width:520px}
+  .panel{background:var(--night);border:2px solid #38416b;border-radius:6px;padding:10px;margin-bottom:10px}
+  canvas{width:100%;image-rendering:pixelated;border:2px solid #38416b;border-radius:4px;background:#0d1020;display:block;touch-action:none}
+  .hud{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;margin-top:8px}
+  .hud b{color:var(--gold)}
+  .bar{height:8px;background:#0d1020;border-radius:4px;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;margin-left:4px}
+  .bar i{display:block;height:100%;background:var(--blood);transition:width .2s}
+  .dialog{margin-top:8px;min-height:58px;background:#0d1020;border:1px solid #38416b;border-radius:4px;padding:10px;font-size:.95rem;line-height:1.5}
+  .who{color:var(--gold);font-weight:700}
+  .dpad{display:none;grid-template-columns:repeat(3,54px);gap:6px;justify-content:center;margin-top:10px}
+  @media(pointer:coarse){.dpad{display:grid}}
+  button{font-family:inherit;background:#2b3560;color:var(--parch);border:1px solid #4b5791;border-radius:4px;padding:8px 10px;font-size:.9rem;cursor:pointer}
+  button:hover{background:#39457c}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .dpad button{height:54px;font-size:1.2rem}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .danger{background:#5b2a26;border-color:var(--blood)}
+  h2{font-size:.95rem;color:var(--gold);margin-bottom:6px}
+  .log{font-family:"Courier New",monospace;font-size:.76rem;background:#0d1020;border:1px solid #38416b;border-radius:4px;padding:8px;max-height:150px;overflow:auto;line-height:1.5;word-break:break-all}
+  .log div{margin-bottom:4px}.ok{color:#7ddc8a}.bad{color:var(--blood)}.rsa{color:var(--rune)}
+  .keys{font-family:"Courier New",monospace;font-size:.78rem;line-height:1.6;color:var(--rune);word-break:break-all}
+  .note{font-size:.8rem;color:var(--dim);margin-top:6px;line-height:1.5}
+
+/* ===== Layar awal ===== */
+.title-screen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;
+background:radial-gradient(ellipse at 50% 30%,#2a3563 0%,#14182b 65%);}
+.title-screen.hidden{display:none}
+.title-box{text-align:center;max-width:420px;width:100%}
+.title-box .kicker{color:var(–dim);font-size:.9rem;margin-bottom:10px}
+.title-box h2{font-size:clamp(2rem,9vw,3rem);color:var(–gold);line-height:1.1;letter-spacing:.03em;margin-bottom:8px;text-shadow:0 3px 0 #6b4f12}
+.title-box .tag{color:var(–parch);font-size:1rem;margin-bottom:26px;line-height:1.5}
+.title-box .menu{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.title-box button{font-size:1.1rem;padding:14px 18px;border-radius:6px}
+.title-box .start{background:var(–gold);color:var(–ink);font-weight:700;border-color:var(–gold)}
+.title-box .start:hover{background:#ecbf55}
+.title-box .back:disabled{opacity:.4;cursor:not-allowed}
+.title-box .foot{margin-top:22px;color:var(–dim);font-size:.8rem}
+.menu-btn{margin-left:auto}
+</style>
+
+</head>
+<body>
+<div class="title-screen" id="titleScreen">
+  <div class="title-box">
+    <p class="kicker">RPG Kriptografi RSA</p>
+    <h2>PROJEK<br>KELOMPOK 4</h2>
+    <p class="tag">Jelajahi desa, kalahkan monster, dan buka gerbang kastil dengan kunci RSA.</p>
+    <div class="menu">
+      <button class="start" id="btnStart">START</button>
+      <button class="back" id="btnResume" disabled>KEMBALI KE GAME</button>
+    </div>
+    <p class="foot">Gerak: panah / WASD &nbsp;|&nbsp; Interaksi: spasi / Enter</p>
+  </div>
+</div>
+
+<h1>PROJEK KELOMPOK 4</h1>
+
+<div class="wrap">
+  <div class="panel">
+    <canvas id="game" width="480" height="352" aria-label="Peta permainan"></canvas>
+    <div class="hud">
+      <span>HP <span class="bar"><i id="hpbar" style="width:100%"></i></span> <b id="hp">30</b>/<b id="hpmax">30</b></span>
+      <span>Lv <b id="lvl">1</b></span>
+      <span>Emas <b id="gold">0</b></span>
+      <span>Kunci <b id="keys">0</b></span>
+    </div>
+    <div class="dialog" id="dialog"><span class="who">Petunjuk</span><br>Gerak: panah / WASD. Bicara atau buka: spasi / Enter di dekat NPC, gerbang, atau peti. Tabrak monster untuk menyerang.</div>
+    <div class="dpad">
+      <span></span><button data-d="up" aria-label="Atas">▲</button><span></span>
+      <button data-d="left" aria-label="Kiri">◀</button>
+      <button data-d="act" aria-label="Interaksi">●</button>
+      <button data-d="right" aria-label="Kanan">▶</button>
+      <span></span><button data-d="down" aria-label="Bawah">▼</button><span></span>
+    </div>
+    <div class="row">
+      <button id="btnSave">Simpan</button>
+      <button id="btnLoad">Muat</button>
+      <button id="btnTamper" class="danger">Coba curang</button>
+      <button id="btnNew">Game baru</button>
+      <button id="btnMenu" class="menu-btn">MENU</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Kunci RSA milikmu (dibuat otomatis)</h2>
+    <div class="keys" id="keyInfo"></div>
+    <p class="note">Yang terjadi di belakang layar: NPC mengirim pesan yang dienkripsi dengan kunci publik, game mendekripsinya dengan kunci privat, gerbang memverifikasi kuncimu, dan save ditandatangani. Semuanya tampil di log.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Log kriptografi</h2>
+    <div class="log" id="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+/* ================= RSA (BigInt) ================= */
+const RSA = {
+  modPow(b, e, m){ let r = 1n; b %= m; while(e > 0n){ if(e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; },
+  gcd(a, b){ while(b){ [a, b] = [b, a % b]; } return a; },
+  egcd(a, b){ if(b === 0n) return {g:a, x:1n, y:0n}; const {g, x, y} = RSA.egcd(b, a % b); return {g, x:y, y:x - (a / b) * y}; },
+  modInv(a, m){ const {g, x} = RSA.egcd(((a % m) + m) % m, m); if(g !== 1n) throw 0; return ((x % m) + m) % m; },
+  isPrime(n){
+    if(n < 2n) return false;
+    const sm = [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n];
+    for(const p of sm){ if(n === p) return true; if(n % p === 0n) return false; }
+    let d = n - 1n, s = 0; while((d & 1n) === 0n){ d >>= 1n; s++; }
+    for(const a of sm){
+      let x = RSA.modPow(a, d, n); if(x === 1n || x === n - 1n) continue;
+      let comp = true;
+      for(let i = 1; i < s; i++){ x = x * x % n; if(x === n - 1n){ comp = false; break; } }
+      if(comp) return false;
+    }
+    return true;
+  },
+  randPrime(bits){
+    while(true){
+      const buf = new Uint32Array(Math.ceil(bits / 32)); crypto.getRandomValues(buf);
+      let n = 0n; for(const w of buf) n = (n << 32n) | BigInt(w);
+      n &= (1n << BigInt(bits)) - 1n; n |= (1n << BigInt(bits - 1)) | 1n;
+      if(RSA.isPrime(n)) return n;
+    }
+  },
+  generate(bits = 32){
+    const e = 65537n; let p, q, n, phi;
+    do{ p = RSA.randPrime(bits); q = RSA.randPrime(bits); if(p === q) continue; n = p * q; phi = (p - 1n) * (q - 1n); }
+    while(RSA.gcd(e, phi) !== 1n);
+    return {p, q, n, phi, e, d: RSA.modInv(e, phi)};
+  },
+  encryptText(t, e, n){ return [...t].map(c => RSA.modPow(BigInt(c.codePointAt(0)), e, n).toString(16)).join("-"); },
+  decryptText(c, d, n){ return c.split("-").map(h => String.fromCodePoint(Number(RSA.modPow(BigInt("0x" + h), d, n)))).join(""); },
+  hash(s){ let h = 0x811c9dc5; for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return BigInt(h); },
+  sign(s, d, n){ return RSA.modPow(RSA.hash(s) % n, d, n); },
+  verify(s, sig, e, n){ return RSA.modPow(sig, e, n) === (RSA.hash(s) % n); }
+};
+
+/* ================= Data game ================= */
+const TILE = 32, COLS = 15, ROWS = 11;
+const MAP = [
+  "###############",
+  "#T...T....#..C#",
+  "#...W.....#...#",
+  "#...W..T..G...#",
+  "#.T.......#...#",
+  "#.....T...#####",
+  "#...W.........#",
+  "#...W...T.....#",
+  "#T........T...#",
+  "#.............#",
+  "###############"
+].map(r => r.split(""));
+
+const NPCS = [
+  {id:"elder",  name:"Tetua Desa",  x:3,  y:1, color:"#d9a93c"},
+  {id:"smith",  name:"Pandai Besi", x:12, y:8, color:"#6fd3c4"},
+  {id:"scribe", name:"Juru Tulis",  x:2,  y:8, color:"#c084d9"}
+];
+const MONSTERS = [
+  {x:6, y:3, hp:8,  max:8,  dmg:3, alive:true},
+  {x:8, y:7, hp:10, max:10, dmg:4, alive:true},
+  {x:5, y:9, hp:8,  max:8,  dmg:3, alive:true}
+];
+const LINES = {
+  elder:  ["Hati-hati di luar sana. Monster berkeliaran di padang.", "Kalau kamu ingin membuka gerbang kastil, temui Juru Tulis di pojok kiri bawah."],
+  smith:  ["Pedangmu kuat, tapi latihan membuatnya lebih tajam. Kalahkan monster untuk naik level.", "Jangan lupa simpan permainanmu."],
+  scribe: ["Ini kunci gerbang kastil. Bawa ke gerbang di tengah peta."]
+};
+
+const FRESH = () => ({x:1, y:9, hp:30, hpMax:30, lvl:1, xp:0, gold:0, keys:0, gateOpen:false, chestOpen:false, gotKey:false});
+let S = FRESH();
+let K = null; // pasangan kunci RSA pemain
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const cv = $("game"), cx = cv.getContext("2d");
+function say(who, txt){ $("dialog").innerHTML = `<span class="who">${who}</span><br>${txt}`; }
+function log(msg, cls = ""){ const d = document.createElement("div"); if(cls) d.className = cls; d.textContent = msg; $("log").prepend(d); }
+function updateHUD(){
+  $("hp").textContent = S.hp; $("hpmax").textContent = S.hpMax;
+  $("hpbar").style.width = (100 * S.hp / S.hpMax) + "%";
+  $("lvl").textContent = S.lvl; $("gold").textContent = S.gold; $("keys").textContent = S.keys;
+}
+function showKeys(){
+  if(!K){ $("keyInfo").textContent = "Membuat kunci..."; return; }
+  $("keyInfo").innerHTML =
+    `Kunci publik  (e, n): ${K.e}, ${K.n}<br>` +
+    `Kunci privat (d, n): ${K.d}, ${K.n}<br>` +
+    `p = ${K.p}<br>q = ${K.q}`;
+}
+function makeKeys(){
+  K = RSA.generate(32);
+  showKeys();
+  log(`[RSA] Kunci dibuat. p, q prima; n = p·q = ${K.n}`, "rsa");
+  log(`[RSA] φ(n) = (p−1)(q−1); d = e⁻¹ mod φ(n) = ${K.d}`, "rsa");
+}
+function reward(xp, gold){
+  S.xp += xp; S.gold += gold;
+  while(S.xp >= S.lvl * 40){ S.xp -= S.lvl * 40; S.lvl++; S.hpMax += 8; S.hp = S.hpMax; log(`Naik ke level ${S.lvl}!`, "ok"); }
+  updateHUD();
+}
+
+/* ================= NPC (RSA otomatis) ================= */
+const talkIndex = {};
+function talk(npc){
+  const lines = LINES[npc.id];
+  const i = talkIndex[npc.id] = ((talkIndex[npc.id] ?? -1) + 1) % lines.length;
+  const plain = lines[i];
+
+  // NPC mengenkripsi dengan kunci publik pemain, game mendekripsi dengan kunci privat
+  const cipher = RSA.encryptText(plain, K.e, K.n);
+  const back = RSA.decryptText(cipher, K.d, K.n);
+  log(`[${npc.name}] enkripsi dgn kunci publik: ${cipher.slice(0, 44)}…`, "rsa");
+  log(`[Game] dekripsi dgn kunci privat: "${back.slice(0, 40)}${back.length > 40 ? "…" : ""}"`, "rsa");
+  say(npc.name, back);
+
+  if(npc.id === "scribe" && !S.gotKey){
+    S.gotKey = true; S.keys++; reward(20, 10);
+    say(npc.name, back + "<br><b>Kamu mendapat sebuah kunci.</b>");
+    updateHUD();
+  }
+}
+
+/* ================= Gerbang (verifikasi RSA otomatis) ================= */
+function useGate(){
+  if(S.gateOpen){ say("Gerbang", "Gerbang sudah terbuka."); return; }
+  if(S.keys < 1){ say("Gerbang", "Terkunci. Kamu butuh kunci dari Juru Tulis."); return; }
+  const nonce = BigInt(Math.floor(Math.random() * 90000) + 10000);
+  const c = RSA.modPow(nonce, K.e, K.n);
+  const r = RSA.modPow(c, K.d, K.n);
+  log(`[Gerbang] kirim tantangan c = nonce^e mod n = ${c}`, "rsa");
+  log(`[Kamu] balas c^d mod n = ${r} (nonce asli = ${nonce})`, "rsa");
+  if(r === nonce){
+    S.gateOpen = true; S.keys--; MAP[3][10] = ".";
+    log("[Gerbang] identitas terverifikasi. Gerbang dibuka.", "ok");
+    say("Gerbang", "Gerbang terbuka. Peti harta menunggu di dalam.");
+    reward(30, 0);
+  }
+}
+function openChest(){
+  if(!S.gateOpen){ say("Peti", "Peti ini ada di balik gerbang."); return; }
+  if(S.chestOpen){ say("Peti", "Peti sudah kosong."); return; }
+  S.chestOpen = true; S.gold += 100; updateHUD();
+  say("Peti", "100 emas dan Mahkota Kunci! <b>Kamu menang!</b>");
+  log("Permainan selesai.", "ok");
+}
+
+/* ================= Pertarungan ================= */
+function fight(m){
+  const hit = 4 + S.lvl * 2 + Math.floor(Math.random() * 3);
+  m.hp -= hit;
+  if(m.hp <= 0){
+    m.alive = false; const g = 8 + Math.floor(Math.random() * 6);
+    reward(14, g); say("Pertarungan", `Monster kalah. +${g} emas.`);
+  } else {
+    const dmg = Math.max(1, m.dmg - Math.floor(S.lvl / 2) + Math.floor(Math.random() * 2));
+    S.hp -= dmg; say("Pertarungan", `Kamu memukul ${hit}. Monster membalas ${dmg}.`);
+    if(S.hp <= 0){
+      say("Pertarungan", "Kamu pingsan dan bangun di awal peta. Emas berkurang separuh.");
+      S.hp = S.hpMax; S.x = 1; S.y = 9; S.gold = Math.floor(S.gold / 2);
+    }
+  }
+  updateHUD();
+}
+
+/* ================= Save bertanda tangan ================= */
+let SAVED = null;
+function snapshot(){ return JSON.stringify({S, mons: MONSTERS.map(m => ({hp:m.hp, alive:m.alive})), gate: MAP[3][10]}); }
+function saveGame(){
+  const data = snapshot(), sig = RSA.sign(data, K.d, K.n);
+  SAVED = {data, sig: sig.toString(), K: Object.fromEntries(Object.entries(K).map(([k, v]) => [k, v.toString()]))};
+  log(`[Save] hash data ditandatangani: s = hash^d mod n = ${sig}`, "rsa");
+  say("Sistem", "Game tersimpan dan ditandatangani dengan kunci privatmu.");
+}
+function loadGame(){
+  if(!SAVED){ say("Sistem", "Belum ada save."); return; }
+  const n = BigInt(SAVED.K.n), e = BigInt(SAVED.K.e);
+  const ok = RSA.verify(SAVED.data, BigInt(SAVED.sig), e, n);
+  log(`[Load] verifikasi: s^e mod n ${ok ? "=" : "≠"} hash(data)`, ok ? "ok" : "bad");
+  if(!ok){ say("Sistem", "Save ditolak: tanda tangan tidak cocok. Datanya sudah diubah."); return; }
+  const d = JSON.parse(SAVED.data);
+  S = d.S; d.mons.forEach((m, i) => {MONSTERS[i].hp = m.hp; MONSTERS[i].alive = m.alive;}); MAP[3][10] = d.gate;
+  K = Object.fromEntries(Object.entries(SAVED.K).map(([k, v]) => [k, BigInt(v)]));
+  showKeys(); updateHUD(); draw();
+  say("Sistem", "Save dimuat. Tanda tangan valid.");
+}
+function tamper(){
+  if(!SAVED){ say("Sistem", "Simpan dulu, baru coba curang."); return; }
+  const d = JSON.parse(SAVED.data); d.S.gold += 9999; SAVED.data = JSON.stringify(d);
+  log("[Curang] emas di save diubah +9999 tanpa tanda tangan baru.", "bad");
+  say("Sistem", "Save sudah diubah. Tekan Muat untuk melihat hasilnya.");
+}
+function newGame(){
+  S = FRESH(); MONSTERS.forEach(m => {m.alive = true; m.hp = m.max;}); MAP[3][10] = "G";
+  SAVED = null; $("log").innerHTML = ""; makeKeys(); updateHUD(); draw();
+  say("Petunjuk", "Game baru dimulai.");
+}
+
+/* ================= Gerak & interaksi ================= */
+const solid = (x, y) => { const t = MAP[y] && MAP[y][x]; return t === undefined || "#TWGC".includes(t); };
+const npcAt = (x, y) => NPCS.find(n => n.x === x && n.y === y);
+const monAt = (x, y) => MONSTERS.find(m => m.alive && m.x === x && m.y === y);
+
+function menuOpen(){ const t = document.getElementById("titleScreen"); return t && !t.classList.contains("hidden"); }
+function move(dx, dy){
+  if(menuOpen()) return;
+  const nx = S.x + dx, ny = S.y + dy, m = monAt(nx, ny);
+  if(m){ fight(m); draw(); return; }
+  if(npcAt(nx, ny) || solid(nx, ny)) return;
+  S.x = nx; S.y = ny; draw();
+}
+function interact(){
+  if(menuOpen()) return;
+  for(const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+    const x = S.x + dx, y = S.y + dy, n = npcAt(x, y);
+    if(n){ talk(n); return; }
+    if(MAP[y] && MAP[y][x] === "G"){ useGate(); draw(); return; }
+    if(MAP[y] && MAP[y][x] === "C"){ openChest(); draw(); return; }
+  }
+  say("Petunjuk", "Tidak ada yang bisa diajak berinteraksi di dekatmu.");
+}
+window.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if(document.activeElement.tagName === "BUTTON" && (k === " " || k === "enter")) return;
+  if(k === "arrowup" || k === "w"){ e.preventDefault(); move(0,-1); }
+  else if(k === "arrowdown" || k === "s"){ e.preventDefault(); move(0,1); }
+  else if(k === "arrowleft" || k === "a"){ e.preventDefault(); move(-1,0); }
+  else if(k === "arrowright" || k === "d"){ e.preventDefault(); move(1,0); }
+  else if(k === " " || k === "enter"){ e.preventDefault(); interact(); }
+});
+document.querySelectorAll(".dpad button").forEach(b => b.addEventListener("click", () => {
+  const d = b.dataset.d;
+  if(d === "up") move(0,-1); else if(d === "down") move(0,1);
+  else if(d === "left") move(-1,0); else if(d === "right") move(1,0); else interact();
+}));
+
+/* ================= Gambar ================= */
+function tile(x, y, t){
+  const px = x * TILE, py = y * TILE;
+  cx.fillStyle = (x + y) % 2 ? "#2d4a3a" : "#2a4536"; cx.fillRect(px, py, TILE, TILE);
+  if(t === "#"){ cx.fillStyle = "#3a3f5c"; cx.fillRect(px, py, TILE, TILE); cx.fillStyle = "#2c3049"; cx.fillRect(px, py + 14, TILE, 2); cx.fillRect(px + 15, py, 2, 14); cx.fillRect(px + 7, py + 16, 2, 16); }
+  else if(t === "T"){ cx.fillStyle = "#5a3d24"; cx.fillRect(px + 13, py + 18, 6, 12); cx.fillStyle = "#1f6b3a"; cx.beginPath(); cx.arc(px + 16, py + 14, 11, 0, 7); cx.fill(); cx.fillStyle = "#2a8a4c"; cx.beginPath(); cx.arc(px + 12, py + 11, 5, 0, 7); cx.fill(); }
+  else if(t === "W"){ cx.fillStyle = "#26537a"; cx.fillRect(px, py, TILE, TILE); cx.fillStyle = "#3c7bb0"; cx.fillRect(px + 4, py + 8, 12, 2); cx.fillRect(px + 14, py + 20, 12, 2); }
+  else if(t === "G"){ cx.fillStyle = "#5a3d24"; cx.fillRect(px + 2, py, 28, TILE); cx.fillStyle = "#3a2716"; for(let i = 0; i < 4; i++) cx.fillRect(px + 6 + i * 6, py, 2, TILE); cx.fillStyle = "#d9a93c"; cx.fillRect(px + 22, py + 14, 6, 6); }
+  else if(t === "C"){ cx.fillStyle = S.chestOpen ? "#6b5a2a" : "#a67c1e"; cx.fillRect(px + 5, py + 10, 22, 16); cx.fillStyle = "#3a2716"; cx.fillRect(px + 5, py + 16, 22, 2); cx.fillStyle = "#d9a93c"; cx.fillRect(px + 14, py + 14, 4, 6); }
+}
+function person(x, y, color){
+  const px = x * TILE, py = y * TILE;
+  cx.fillStyle = "#0008"; cx.fillRect(px + 8, py + 27, 16, 3);
+  cx.fillStyle = color; cx.fillRect(px + 9, py + 12, 14, 14);
+  cx.fillStyle = "#f0d3a8"; cx.fillRect(px + 11, py + 4, 10, 9);
+  cx.fillStyle = "#14182b"; cx.fillRect(px + 13, py + 7, 2, 2); cx.fillRect(px + 17, py + 7, 2, 2);
+}
+function monster(m){
+  const px = m.x * TILE, py = m.y * TILE;
+  cx.fillStyle = "#0008"; cx.fillRect(px + 7, py + 27, 18, 3);
+  cx.fillStyle = "#c8503f"; cx.fillRect(px + 7, py + 10, 18, 16); cx.fillRect(px + 9, py + 6, 4, 6); cx.fillRect(px + 19, py + 6, 4, 6);
+  cx.fillStyle = "#ffe08a"; cx.fillRect(px + 11, py + 15, 3, 3); cx.fillRect(px + 18, py + 15, 3, 3);
+}
+function draw(){
+  cx.clearRect(0, 0, cv.width, cv.height);
+  for(let y = 0; y < ROWS; y++) for(let x = 0; x < COLS; x++) tile(x, y, MAP[y][x]);
+  NPCS.forEach(n => person(n.x, n.y, n.color));
+  MONSTERS.forEach(m => { if(m.alive) monster(m); });
+  person(S.x, S.y, "#e9dcc0");
+  cx.fillStyle = "#d9a93c"; cx.fillRect(S.x * TILE + 9, S.y * TILE + 2, 14, 3);
+}
+
+/* ================= Mulai ================= */
+$("btnSave").onclick = saveGame;
+$("btnLoad").onclick = loadGame;
+$("btnTamper").onclick = tamper;
+$("btnNew").onclick = newGame;
+makeKeys(); updateHUD(); draw();
+
+/* ================= Layar awal ================= */
+const titleScreen = $("titleScreen");
+let inGame = false;
+function showTitle(){
+  titleScreen.classList.remove("hidden");
+  $("btnResume").disabled = !inGame;
+  $("btnStart").textContent = inGame ? "GAME BARU" : "START";
+}
+function hideTitle(){ titleScreen.classList.add("hidden"); }
+$("btnStart").onclick = () => {
+  if(inGame) newGame();
+  inGame = true; hideTitle();
+};
+$("btnResume").onclick = () => { if(inGame) hideTitle(); };
+$("btnMenu").onclick = showTitle;
+window.addEventListener("keydown", e => {
+  // Saat layar awal tampil, tombol game tidak menggerakkan pemain
+  if(!titleScreen.classList.contains("hidden")){
+    if(e.key === "Enter" && document.activeElement.tagName !== "BUTTON"){ $("btnStart").click(); }
+    if(e.key === "Escape" && inGame) hideTitle();
+    e.stopImmediatePropagation();
+    return;
+  }
+  if(e.key === "Escape") showTitle();
+}, true);
+showTitle();
+</script>
+
+</body>
+</html>
